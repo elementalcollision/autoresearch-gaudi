@@ -1,0 +1,36 @@
+[project]
+name = "autoresearch-gaudi"
+version = "0.1.0"
+description = "Autonomous LM training research framework for Intel Gaudi 3"
+requires-python = ">=3.10"
+
+# NOTE: torch is NOT listed here -- it comes pre-installed in the Habana Docker image.
+# Installing torch via pip would overwrite the HPU-enabled build.
+dependencies = [
+    "numpy",
+    "pyarrow",
+    "requests",
+    "rustbpe>=0.1.0",
+    "tiktoken>=0.5.0",
+]
+
+[project.optional-dependencies]
+tui = [
+    "textual>=0.40.0",
+]
+agent = [
+    "anthropic>=0.39.0",
+    "textual>=0.40.0",
+]
+analysis = [
+    "matplotlib>=3.8",
+]
+all = [
+    "textual>=0.40.0",
+    "anthropic>=0.39.0",
+    "matplotlib>=3.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
