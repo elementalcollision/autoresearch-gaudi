@@ -196,6 +196,7 @@ class ExperimentOrchestrator:
                 tok_sec=int(final.total_tokens_M * 1e6 / final.training_seconds) if final.training_seconds > 0 else 0,
                 mfu=final.mfu_percent, steps=final.num_steps, status="baseline",
                 notes=f"depth={final.depth}, {final.chip}",
+                gpu_name=self._hw_info.get("chip_name", "unknown"),
             )
             self.best_val_bpb = final.val_bpb
             self.best_experiment = "exp0 (baseline)"
@@ -204,6 +205,7 @@ class ExperimentOrchestrator:
                 exp="exp0", description="baseline (no modifications)",
                 val_bpb=0.0, peak_mem_gb=0.0, tok_sec=0,
                 mfu=0.0, steps=0, status="crash", notes="baseline training failed",
+                gpu_name=self._hw_info.get("chip_name", "unknown"),
             )
         append_result(self._results_path, result)
         self.total_runs += 1
@@ -286,6 +288,7 @@ class ExperimentOrchestrator:
                 tok_sec=int(final.total_tokens_M * 1e6 / final.training_seconds) if final.training_seconds > 0 else 0,
                 mfu=final.mfu_percent, steps=final.num_steps, status=status,
                 notes=proposal.reasoning[:80],
+                gpu_name=self._hw_info.get("chip_name", "unknown"),
             )
         else:
             self.crash_count += 1
@@ -295,6 +298,7 @@ class ExperimentOrchestrator:
                 exp=f"exp{exp_num}", description=proposal.description,
                 val_bpb=0.0, peak_mem_gb=0.0, tok_sec=0,
                 mfu=0.0, steps=0, status="crash", notes="training crashed or timed out",
+                gpu_name=self._hw_info.get("chip_name", "unknown"),
             )
 
         append_result(self._results_path, result)

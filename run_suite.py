@@ -332,6 +332,55 @@ def _model_slug(model: str | None) -> str | None:
     return slug
 
 
+def _write_deployment_manifest(results_dir, tag: str):
+    """Write a manifest.json with hardware provenance for this deployment.
+
+    Creates a tamper-evident record of which accelerator produced the results
+    in this directory. Used by rsync scripts to validate data integrity.
+    """
+    manifest_path = results_dir / "manifest.json"
+
+    try:
+        from tui.hardware import get_hardware_summary
+        hw = get_hardware_summary()
+        gpu_name = hw.get("chip_name", "unknown")
+        hbm_gb = round(hw.get("total_memory_gb", 0), 1)
+        tpcs = hw.get("gpu_cores", 0)
+        device_count = hw.get("device_count", 0)
+        peak_tflops = hw.get("peak_tflops", 0)
+    except Exception:
+        gpu_name = "unknown"
+        hbm_gb = 0
+        tpcs = 0
+        device_count = 0
+        peak_tflops = 0
+
+    # Try torch.hpu for runtime device count if hardware detection missed it
+    if device_count == 0:
+        try:
+            import torch
+            if hasattr(torch, "hpu") and torch.hpu.is_available():
+                device_count = torch.hpu.device_count()
+        except Exception:
+            pass
+
+    manifest = {
+        "gpu_name": gpu_name,
+        "hbm_gb": hbm_gb,
+        "tpcs_per_device": tpcs,
+        "device_count": device_count,
+        "peak_tflops_bf16": peak_tflops,
+        "tier": "gaudi3",
+        "tag": tag,
+        "timestamp": datetime.now().isoformat(),
+        "results_dir": str(results_dir),
+    }
+
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=2)
+    print(f"  Manifest: {manifest_path} ({gpu_name}, {hbm_gb} GB HBM2e)")
+
+
 def get_results_dir(dataset_name, model: str | None = None):
     """Get the results directory for a dataset, isolated by model."""
     slug = _model_slug(model)
@@ -371,6 +420,9 @@ def run_agent(dataset_name, tag, max_experiments=80, model=None):
     results_dir = get_results_dir(dataset_name, model)
     results_tsv = str(results_dir / "results.tsv")
     run_tag = f"{tag}-{dataset_name}"
+
+    # Write deployment manifest -- hardware provenance for this run
+    _write_deployment_manifest(results_dir, tag)
 
     model_display = model or os.environ.get("CLAUDE_MODEL") or "default"
     slug = _model_slug(model)
